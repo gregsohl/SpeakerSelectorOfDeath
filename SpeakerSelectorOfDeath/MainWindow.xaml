@@ -45,6 +45,7 @@
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Top">
             <Button Content="Save" Click="SaveButton_Click" />
             <Button Content="Load" Click="LoadButton_Click" />
+            <Button Content="Import" Click="ImportButton_Click" />
             <Button Content="Export To Greg's Format" Click="ExportButton_Click" />
             <Button Content="Emails CSV" Click="EmailCsv_Click" />
             <TextBox Text="{Binding Search, UpdateSourceTrigger=PropertyChanged}" Width="200"></TextBox>

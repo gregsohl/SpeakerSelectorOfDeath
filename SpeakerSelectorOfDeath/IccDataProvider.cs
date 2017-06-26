@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Data;
-using System.IO;
 using System.Data.OleDb;
-
-
 
 namespace SpeakerSelectorOfDeath
 {
@@ -42,7 +36,7 @@ namespace SpeakerSelectorOfDeath
                     HomeTown = row["City, State"].ToString(),
                     Email = row["Email Address"].ToString(),
                     Website = row["Website or Blog URL"].ToString(),
-                    HeadshotUrl = row["URL for a 90x117 pixel JPG headshot image of you"].ToString(),
+                    HeadshotUrl = row["URL for a 250x250 pixel JPG headshot image of you"].ToString(),
                     Bio = row["Speaker Bio"].ToString(),
                     NotesToOrganizer = row["Other notes about yourself or your submission"].ToString(),
                 };

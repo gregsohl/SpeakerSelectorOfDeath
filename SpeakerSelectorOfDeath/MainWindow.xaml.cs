@@ -5,12 +5,8 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Runtime.Serialization;
@@ -49,9 +45,9 @@ namespace SpeakerSelectorOfDeath
             //_viewModel.Speakers.AddRange(speakers);
             //_viewModel.UnselectedSessions.AddRange(speakers.SelectMany(s => s.Sessions));
 
-            //InitializeRoomsAndTimes();
+            InitializeRoomsAndTimes();
 
-            this.DataContext = _viewModel;
+            DataContext = _viewModel;
         }
 
 
@@ -380,13 +376,37 @@ namespace SpeakerSelectorOfDeath
                 
             }
         }
-    }
+
+	    private void ImportButton_Click(object sender, RoutedEventArgs e)
+	    {
+		    OpenFileDialog ofd = new OpenFileDialog();
+		    ofd.Title = "Import Speaker Submissions";
+		    ofd.DefaultExt = "txt";
+		    ofd.Filter = "Text Files (*.txt)|*.txt|CSV Files (*.csv)|*.csv|All Files (*.*)|*.*";
+		    ofd.FilterIndex = 1;
+		    ofd.RestoreDirectory = true;
+
+		    if (ofd.ShowDialog() == true)
+		    {
+			    _viewModel = new ViewModel();
+
+			    ISpeakerProvider speakerProvider = new IccSpeakerProvider(ofd.FileName);
+
+			    var speakers = speakerProvider.GetSpeakerSessions();
+
+			    _viewModel.Speakers.AddRange(speakers);
+			    _viewModel.UnselectedSessions.AddRange(speakers.SelectMany(s => s.Sessions));
+
+			    InitializeRoomsAndTimes();
+
+			    DataContext = _viewModel;
+		    }
+	    }
+	}
 
     [Serializable]
     public class ViewModel : INotifyPropertyChanged
     {
-
-
         private string _search = "";
         public string Search
         {
@@ -404,8 +424,6 @@ namespace SpeakerSelectorOfDeath
 
         private void Highlight()
         {
-            
-
             var searchRegex = new Regex(_search, RegexOptions.IgnoreCase);
             if (_search == "")
                 searchRegex = new Regex(@"asdofiwoinfoinas;donifosianwoinwef", RegexOptions.IgnoreCase);
@@ -622,9 +640,29 @@ namespace SpeakerSelectorOfDeath
         {
             get { return _sessions; }
         }
-        
 
-        #region INotifyPropertyChanged Members
+	    public bool Verify()
+	    {
+		    foreach (var session in _sessions)
+		    {
+			    TimeSlot sessionTime = session.Selection.TimeSlot;
+
+			    foreach (var compareSession in _sessions)
+			    {
+					if (!session.Equals(compareSession)) { 
+					TimeSlot compareSessionTime = compareSession.Selection.TimeSlot;
+
+				    if (sessionTime.StartDate == compareSessionTime.StartDate)
+				    {
+					    return false;
+				    }}
+			    }
+			}
+
+		    return true;
+	    }
+
+	    #region INotifyPropertyChanged Members
 
         [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
@@ -636,7 +674,6 @@ namespace SpeakerSelectorOfDeath
         }
 
         #endregion
-        
     }
 
     [Serializable]
@@ -830,8 +867,6 @@ namespace SpeakerSelectorOfDeath
         
     }
 
-
-
     [Serializable]
     public class TimeSlot : INotifyPropertyChanged
     {
@@ -1023,6 +1058,5 @@ namespace SpeakerSelectorOfDeath
         }
 
     }
-
 
 }
