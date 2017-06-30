@@ -68,11 +68,11 @@ namespace SpeakerSelectorOfDeath
 
             _viewModel.TimeSlots = new ObservableCollection<TimeSlot> 
             { 
-                TimeSlot.Create(9, 0, 75),
-                TimeSlot.Create(10, 30, 75),
-                TimeSlot.Create(12, 45, 75),
-                TimeSlot.Create(14, 15, 75),
-                TimeSlot.Create(15, 45, 75),
+                TimeSlot.Create(9, 0, 75, 1),
+                TimeSlot.Create(10, 30, 75, 2),
+                TimeSlot.Create(12, 45, 75, 3),
+                TimeSlot.Create(14, 15, 75, 4),
+                TimeSlot.Create(15, 45, 75, 5),
             };
 
             foreach (var roomName in roomNames)
@@ -860,16 +860,32 @@ namespace SpeakerSelectorOfDeath
 
 					if (count > 1)
 					{
-						speakerSession.State = speakerSession.State.Include(SelectionState.Conflict);
+						speakerSession.State = speakerSession.State.Include(SelectionState.SameTimeConflict);
 					}
 					else
 					{
-						speakerSession.State = speakerSession.State.Remove(SelectionState.Conflict);
+						speakerSession.State = speakerSession.State.Remove(SelectionState.SameTimeConflict);
+					}
+
+					foreach (var compareSession in Speaker.Sessions)
+					{
+						if (compareSession.Selection != null && compareSession != speakerSession)
+						{
+							if (Math.Abs(compareSession.Selection.TimeSlot.Sequence - speakerSession.Selection.TimeSlot.Sequence) == 1)
+							{
+								speakerSession.State = speakerSession.State.Include(SelectionState.BackToBack);
+							}
+							else
+							{
+								speakerSession.State = speakerSession.State.Remove(SelectionState.BackToBack);
+							}
+						}
 					}
 			    }
 			    else
 			    {
-				    speakerSession.State = speakerSession.State.Remove(SelectionState.Conflict);
+				    speakerSession.State = speakerSession.State.Remove(SelectionState.SameTimeConflict);
+					speakerSession.State = speakerSession.State.Remove(SelectionState.BackToBack);
 			    }
 		    }
 		}
@@ -982,7 +998,11 @@ namespace SpeakerSelectorOfDeath
     [Serializable]
     public class TimeSlot : INotifyPropertyChanged
     {
-        public static TimeSlot Create(int hour, int minute, int minuteLength)
+	    public TimeSlot()
+	    {
+	    }
+
+	    public static TimeSlot Create(int hour, int minute, int minuteLength, int sequence)
         {
             //we might mess with this later if we ever had a multi-day conference
             //but right now it doesn't really matter
@@ -992,6 +1012,7 @@ namespace SpeakerSelectorOfDeath
             {
                 StartDate = baseDate.AddHours(hour).AddMinutes(minute),
                 EndDate = baseDate.AddHours(hour).AddMinutes(minute + minuteLength),
+				Sequence = sequence
             };
         }
 
@@ -1023,7 +1044,15 @@ namespace SpeakerSelectorOfDeath
             }
         }
 
-        public override string ToString()
+	    private int _sequence;
+
+	    public int Sequence
+	    {
+		    get { return _sequence; }
+		    set { _sequence = value; }
+	    }
+
+	    public override string ToString()
         {
             return "TimeSlot: " + StartDate.ToString("HH:MM");
         }
@@ -1049,7 +1078,8 @@ namespace SpeakerSelectorOfDeath
 	{
 		Default = 0,
 		InSearchResult = 1,
-		Conflict = 2,
+		SameTimeConflict = 2,
+		BackToBack = 4,
 	}
 
 	[Serializable]
@@ -1165,8 +1195,11 @@ namespace SpeakerSelectorOfDeath
 			if (selectionState.Has(SelectionState.InSearchResult))
 				return new SolidColorBrush(Colors.Pink);
 
-			if (selectionState.Has(SelectionState.Conflict))
+			if (selectionState.Has(SelectionState.SameTimeConflict))
 				return new SolidColorBrush(Colors.Coral);
+
+			if (selectionState.Has(SelectionState.BackToBack))
+				return new SolidColorBrush(Colors.BlueViolet);
 
 			return new SolidColorBrush(Colors.LightGreen);
 		}
