@@ -9,12 +9,12 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
-using System.Runtime.Serialization;
 using System.IO;
 using Microsoft.Win32;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.RegularExpressions;
 using System.Globalization;
+using Newtonsoft.Json;
 
 namespace SpeakerSelectorOfDeath
 {
@@ -23,9 +23,15 @@ namespace SpeakerSelectorOfDeath
     /// </summary>
     public partial class MainWindow : Window
     {
-        ViewModel _viewModel;
+	    private const string FILE_FILTER = "Speaker Selections OF DEATH (*.ssod)|*.ssod|Speaker Selections OF DEATH (*.json)|*.json";
+	    ViewModel _viewModel;
 
-        public MainWindow()
+	    private static readonly JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings
+	    {
+		    PreserveReferencesHandling = PreserveReferencesHandling.Objects
+	    };
+
+		public MainWindow()
         {
             InitializeComponent();
             this.Loaded += MainWindow_Loaded;
@@ -264,25 +270,7 @@ namespace SpeakerSelectorOfDeath
 
         #endregion
 
-
-        //this sucks
-        public static string WriteObject<T>(T value)
-        {
-            
-            using (MemoryStream stream = new MemoryStream())
-            {
-                DataContractSerializer ser = new DataContractSerializer(typeof(T));
-
-                ser.WriteObject(stream, value);
-                
-                var data =  Encoding.UTF8.GetString(stream.GetBuffer());
-
-                return data;
-            }
-            
-        }
-
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
+		private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
 	        SaveAs();
         }
@@ -292,15 +280,28 @@ namespace SpeakerSelectorOfDeath
 		    SaveFileDialog sfd = new SaveFileDialog();
 		    sfd.Title = "Save Speaker Selections";
 		    sfd.DefaultExt = "ssod";
-		    sfd.Filter = "Speaker Selections OF DEATH (*.ssod)|*.ssod";
+		    sfd.Filter = FILE_FILTER;
 		    sfd.RestoreDirectory = true;
 
 		    if (sfd.ShowDialog() == true)
 		    {
 			    using (Stream stream = File.Open(sfd.FileName, FileMode.OpenOrCreate))
 			    {
-				    BinaryFormatter serializer = new BinaryFormatter();
-				    serializer.Serialize(stream, _viewModel);
+				    if (Path.GetExtension(sfd.FileName) == ".json")
+				    {
+					    JsonSerializer serializer = JsonSerializer.Create(_jsonSerializerSettings);
+						// XmlSerializer serializer = new XmlSerializer(typeof(ViewModel), new[]{ typeof(Selection), typeof(Speaker), typeof(Session), typeof(Room), typeof(TimeSlot) });
+
+					    using (TextWriter writer = new StreamWriter(stream))
+					    {
+						    serializer.Serialize(writer, _viewModel);
+					    }
+				    }
+					else
+				    {
+					    BinaryFormatter serializer = new BinaryFormatter();
+					    serializer.Serialize(stream, _viewModel);
+				    }
 			    }
 
 			    _viewModel.IsDirty = false;
@@ -312,16 +313,30 @@ namespace SpeakerSelectorOfDeath
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Title = "Load Speaker Selections";
             ofd.DefaultExt = "ssod";
-            ofd.Filter = "Speaker Selections OF DEATH (*.ssod)|*.ssod";
-            ofd.RestoreDirectory = true;
+            ofd.Filter = FILE_FILTER;
+			ofd.RestoreDirectory = true;
 
             if (ofd.ShowDialog() == true)
             {
                 using (Stream stream = File.Open(ofd.FileName, FileMode.OpenOrCreate))
                 {
-                    BinaryFormatter serializer = new BinaryFormatter();
-                    ViewModel viewModel = serializer.Deserialize(stream) as ViewModel;
-                    _viewModel = viewModel;
+	                ViewModel viewModel;
+
+	                if (Path.GetExtension(ofd.FileName) == ".json")
+	                {
+						JsonSerializer serializer = JsonSerializer.Create(_jsonSerializerSettings);
+						using (StreamReader sr = new StreamReader(stream))
+						{
+							viewModel = serializer.Deserialize<ViewModel>(new JsonTextReader(sr));
+						}
+	                }
+	                else
+	                {
+		                BinaryFormatter serializer = new BinaryFormatter();
+		                viewModel = serializer.Deserialize(stream) as ViewModel;
+	                }
+
+	                _viewModel = viewModel;
 	                _viewModel.IsDirty = false;
                     this.DataContext = _viewModel;
                 }
