@@ -232,6 +232,8 @@ namespace SpeakerSelectorOfDeath
                 }
             }
             //panel.Background = Brushes.Transparent;
+
+	        _viewModel.IsDirty = true;
         }
 
         private void Selection_DragEnter(object sender, DragEventArgs e)
@@ -282,23 +284,30 @@ namespace SpeakerSelectorOfDeath
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Title = "Save Speaker Selections";
-            sfd.DefaultExt = "ssod";
-            sfd.Filter = "Speaker Selections OF DEATH (*.ssod)|*.ssod";
-            sfd.RestoreDirectory = true;
-
-            if (sfd.ShowDialog() == true)
-            {
-                using (Stream stream = File.Open(sfd.FileName, FileMode.OpenOrCreate))
-                {
-                    BinaryFormatter serializer = new BinaryFormatter();
-                    serializer.Serialize(stream, _viewModel);
-                }
-            }
+	        SaveAs();
         }
 
-        private void LoadButton_Click(object sender, RoutedEventArgs e)
+	    private void SaveAs()
+	    {
+		    SaveFileDialog sfd = new SaveFileDialog();
+		    sfd.Title = "Save Speaker Selections";
+		    sfd.DefaultExt = "ssod";
+		    sfd.Filter = "Speaker Selections OF DEATH (*.ssod)|*.ssod";
+		    sfd.RestoreDirectory = true;
+
+		    if (sfd.ShowDialog() == true)
+		    {
+			    using (Stream stream = File.Open(sfd.FileName, FileMode.OpenOrCreate))
+			    {
+				    BinaryFormatter serializer = new BinaryFormatter();
+				    serializer.Serialize(stream, _viewModel);
+			    }
+
+			    _viewModel.IsDirty = false;
+		    }
+	    }
+
+	    private void LoadButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Title = "Load Speaker Selections";
@@ -313,6 +322,7 @@ namespace SpeakerSelectorOfDeath
                     BinaryFormatter serializer = new BinaryFormatter();
                     ViewModel viewModel = serializer.Deserialize(stream) as ViewModel;
                     _viewModel = viewModel;
+	                _viewModel.IsDirty = false;
                     this.DataContext = _viewModel;
                 }
             }
@@ -399,15 +409,45 @@ namespace SpeakerSelectorOfDeath
 
 			    InitializeRoomsAndTimes();
 
+			    _viewModel.IsDirty = false;
+
 			    DataContext = _viewModel;
 		    }
 	    }
-	}
+
+	    private void MainWindow_OnClosing(object sender, CancelEventArgs e)
+	    {
+		    if (_viewModel.IsDirty)
+		    {
+			    MessageBoxResult result = MessageBox.Show(this, "Schedule has been modified. Save your changes?", "Warning", MessageBoxButton.YesNoCancel);
+
+			    switch (result)
+			    {
+					case MessageBoxResult.Cancel:
+						e.Cancel = true;
+						return;
+					case MessageBoxResult.No:
+						return;
+					case MessageBoxResult.Yes:
+						SaveAs();
+						break;
+			    }
+		    }
+	    }
+    }
 
     [Serializable]
     public class ViewModel : INotifyPropertyChanged
     {
-        private string _search = "";
+	    private bool _isDirty;
+
+	    public bool IsDirty
+	    {
+		    get { return _isDirty; }
+		    set { _isDirty = value; }
+	    }
+
+	    private string _search = "";
         public string Search
         {
             get { return _search; }
@@ -674,13 +714,33 @@ namespace SpeakerSelectorOfDeath
         }
 
         #endregion
+
+	    public int CountSessionsInTime(TimeSlot timeSlot)
+	    {
+		    int count = 0;
+		    foreach (var session in _sessions)
+		    {
+			    if ((session.Selection != null) &&
+			        (session.Selection.TimeSlot == timeSlot))
+			    {
+				    count++;
+			    }
+		    }
+
+		    return count;
+	    }
     }
 
     [Serializable]
     public class Session : INotifyPropertyChanged
     {
-        
-        private string _level;
+	    public Session()
+	    {
+		    _state = SelectionState.Default;
+	    }
+
+
+	    private string _level;
         public string Level
         {
             get { return _level; }
@@ -762,9 +822,12 @@ namespace SpeakerSelectorOfDeath
                     _selection = value;
                     if (_selection != null)
                         _selection.Session = this;
+
+					ValidateSelectedSessions();
+
                     FirePropertyChanged("Selection");
-                }
-            }
+				}
+			}
         }
 
 
@@ -777,12 +840,61 @@ namespace SpeakerSelectorOfDeath
                 if (_highlight == value)
                     return;
                 _highlight = value;
+
+	            if (value)
+		            State = State.Include(SelectionState.InSearchResult);
+	            else
+		            State = State.Remove(SelectionState.InSearchResult);
+
                 FirePropertyChanged("Highlight");
             }
-        }
-        
+		}
 
-        public override string ToString()
+		private void ValidateSelectedSessions()
+	    {
+		    foreach (var speakerSession in Speaker.Sessions)
+		    {
+				if (speakerSession.Selection != null)
+				{
+					int count = Speaker.CountSessionsInTime(speakerSession.Selection.TimeSlot);
+
+					if (count > 1)
+					{
+						speakerSession.State = speakerSession.State.Include(SelectionState.Conflict);
+					}
+					else
+					{
+						speakerSession.State = speakerSession.State.Remove(SelectionState.Conflict);
+					}
+			    }
+			    else
+			    {
+				    speakerSession.State = speakerSession.State.Remove(SelectionState.Conflict);
+			    }
+		    }
+		}
+
+	    public SelectionState _state;
+
+	    public SelectionState State
+	    {
+		    get
+		    {
+			    return _state;
+		    }
+		    set
+		    {
+			    if (_state == value)
+				    return;
+
+			    _state = value;
+			    
+				FirePropertyChanged("State");
+		    }
+	    }
+
+
+		public override string ToString()
         {
             return "Session: " + Title;
         }
@@ -932,11 +1044,18 @@ namespace SpeakerSelectorOfDeath
         
     }
 
-    [Serializable]
+	[Flags]
+	public enum SelectionState
+	{
+		Default = 0,
+		InSearchResult = 1,
+		Conflict = 2,
+	}
+
+	[Serializable]
     public class Selection : INotifyPropertyChanged
     {
-
-        private Room _room;
+	    private Room _room;
         public Room Room
         {
             get { return _room; }
@@ -975,14 +1094,14 @@ namespace SpeakerSelectorOfDeath
                     _session = value;
                     if (_session != null)
                         _session.Selection = this;
-                    FirePropertyChanged("Session");
+
+	                FirePropertyChanged("Session");
                 }
             }
         }
 
-        
 
-        #region INotifyPropertyChanged Members
+	    #region INotifyPropertyChanged Members
 
         [field: NonSerialized]
         public event PropertyChangedEventHandler PropertyChanged;
@@ -994,8 +1113,6 @@ namespace SpeakerSelectorOfDeath
         }
 
         #endregion
-        
-        
     }
 
     public static class Extensions
@@ -1039,7 +1156,28 @@ namespace SpeakerSelectorOfDeath
         
     }
 
-    public class BrushColorConverter : IValueConverter
+	public class SelectionStateToColorConverter : IValueConverter
+	{
+		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			var selectionState = (SelectionState) value;
+
+			if (selectionState.Has(SelectionState.InSearchResult))
+				return new SolidColorBrush(Colors.Pink);
+
+			if (selectionState.Has(SelectionState.Conflict))
+				return new SolidColorBrush(Colors.Coral);
+
+			return new SolidColorBrush(Colors.LightGreen);
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class BrushColorConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
@@ -1058,5 +1196,4 @@ namespace SpeakerSelectorOfDeath
         }
 
     }
-
 }
