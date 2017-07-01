@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.OleDb;
 
@@ -24,22 +25,46 @@ namespace SpeakerSelectorOfDeath
 
             //var obj = ServiceStack.Text.CsvSerializer.DeserializeFromStream(typeof(object), File.Open(_filePath, FileMode.OpenOrCreate));
             var dataTable =  CsvToDataTable(_filePath);
-            //var dataTable = CSVParser.ParseCSV(_filePath);// CSVReader.ReadCSVFile(_filePath, true);
+			//var dataTable = CSVParser.ParseCSV(_filePath);// CSVReader.ReadCSVFile(_filePath, true);
 
-            //var dataTable = new DataTable();
+			//var dataTable = new DataTable();
 
-            foreach (DataRow row in dataTable.Rows)
+	        bool hasSpeakerKey = dataTable.Columns.Contains("SpeakerKey");
+
+			foreach (DataRow row in dataTable.Rows)
             {
-                var speaker = new Speaker
-                {
-                    Name = row["Speaker Name"].ToString(),
-                    HomeTown = row["City, State"].ToString(),
-                    Email = row["Email Address"].ToString(),
-                    Website = row["Website or Blog URL"].ToString(),
-                    HeadshotUrl = row["URL for a 250x250 pixel JPG headshot image of you"].ToString(),
-                    Bio = row["Speaker Bio"].ToString(),
-                    NotesToOrganizer = row["Other notes about yourself or your submission"].ToString(),
-                };
+	            int speakerKey = 0;
+	            if (hasSpeakerKey)
+	            {
+		            speakerKey = Int32.Parse(row["SpeakerKey"].ToString());
+	            }
+	            else
+	            {
+		            speakerKey++;
+	            }
+
+	            string speakerEmail = row["Email Address"].ToString();
+
+	            Speaker speaker;
+				
+				bool existingSpeaker = TryResolveSpeaker(speakerEmail, speakers, out speaker);
+
+				if (!existingSpeaker)
+				{
+					speaker = new Speaker
+					{
+						SpeakerKey = speakerKey,
+						Name = row["Speaker Name"].ToString(),
+						HomeTown = row["City, State"].ToString(),
+						Email = speakerEmail,
+						Website = row["Website or Blog URL"].ToString(),
+						HeadshotUrl = row["URL for a 250x250 pixel JPG headshot image of you"].ToString(),
+						Bio = row["Speaker Bio"].ToString(),
+						NotesToOrganizer = row["Other notes about yourself or your submission"].ToString(),
+						PhoneNumber = row["Phone Number"].ToString(),
+						Twitter = row["Twitter"].ToString(),
+					};
+				}
 
                 var session1 = new Session
                 {
@@ -71,14 +96,33 @@ namespace SpeakerSelectorOfDeath
                 if (!string.IsNullOrWhiteSpace(session3.Title))
                     speaker.AddSession(session3);
 
-                speakers.Add(speaker);
+				if (!existingSpeaker)
+				{
+					speakers.Add(speaker);
+				}
 
             }
 
             return speakers;
         }
 
-        static DataTable CsvToDataTable(string strFileName)
+	    private bool TryResolveSpeaker(string speakerEmail, List<Speaker> speakers, out Speaker speaker)
+	    {
+		    speaker = null;
+
+		    foreach (var compareSpeaker in speakers)
+		    {
+			    if (speakerEmail == compareSpeaker.Email)
+			    {
+				    speaker = compareSpeaker;
+				    return true;
+			    }
+		    }
+
+		    return false;
+	    }
+
+	    static DataTable CsvToDataTable(string strFileName)
         {
             DataTable dataTable = new DataTable("DataTable Name");
 
