@@ -362,9 +362,25 @@ namespace SpeakerSelectorOfDeath
                     {
                         var lineBuilder = new StringBuilder();
 
-                        lineBuilder.Append(speakerKey); lineBuilder.Append(",");
-                        lineBuilder.Append(sessionKey); lineBuilder.Append(",");
-                        lineBuilder.Append(session.Selection != null); lineBuilder.Append(",");
+						if (speaker.SpeakerKey != 0)
+						{
+							lineBuilder.Append(speaker.SpeakerKey); lineBuilder.Append(",");
+						}
+						else
+						{
+							lineBuilder.Append(speakerKey); lineBuilder.Append(",");
+						}
+
+						if (session.SessionKey != 0)
+						{
+							lineBuilder.Append(sessionKey); lineBuilder.Append(",");
+						}
+						else
+						{
+							lineBuilder.Append(session.SessionKey); lineBuilder.Append(",");
+						}
+
+						lineBuilder.Append(session.Selection != null); lineBuilder.Append(",");
                         lineBuilder.Append(session.Selection != null ? session.Selection.Room.RoomName : ""); lineBuilder.Append(",");
                         lineBuilder.Append(session.Selection != null ? session.Selection.TimeSlot.StartDate.ToString("h:mm") : ""); lineBuilder.Append(",");
                         lineBuilder.Append(speaker.Name); lineBuilder.Append(",");
@@ -387,7 +403,130 @@ namespace SpeakerSelectorOfDeath
             }
         }
 
-        private void EmailCsv_Click(object sender, RoutedEventArgs e)
+	    private void ExportSplitButton_Click(object sender, RoutedEventArgs e)
+	    {
+			ExportSpeakers();
+		    ExportSessions();
+	    }
+
+		private void ExportSpeakers()
+	    {
+			SaveFileDialog sfd = new SaveFileDialog();
+			sfd.Title = "Greg's stuff";
+			sfd.DefaultExt = "csv";
+			sfd.Filter = "Speakers (*.csv)|*.csv";
+			sfd.RestoreDirectory = true;
+		    sfd.FileName = "Speakers.csv";
+
+			if (sfd.ShowDialog() == true)
+			{
+				var fileBuilder = new StringBuilder();
+
+				AppendField(fileBuilder, "SpeakerKey");
+				AppendField(fileBuilder, "SpeakerName");
+				AppendField(fileBuilder, "CityState");
+				AppendField(fileBuilder, "EmailAddress");
+				AppendField(fileBuilder, "WebsiteBlogUrl");
+				AppendField(fileBuilder, "HeadshotUrl");
+				AppendField(fileBuilder, "SpeakerBio");
+				AppendField(fileBuilder, "OtherNotes");
+				EndRow(fileBuilder);
+
+				foreach (Speaker speaker in _viewModel.Speakers)
+				{
+					AppendField(fileBuilder, speaker.SpeakerKey.ToString());
+					AppendField(fileBuilder, speaker.Name);
+					AppendField(fileBuilder, speaker.HomeTown);
+					AppendField(fileBuilder, speaker.Email);
+					AppendField(fileBuilder, speaker.Website);
+					AppendField(fileBuilder, speaker.HeadshotUrl);
+					AppendField(fileBuilder, speaker.Bio);
+					AppendField(fileBuilder, speaker.NotesToOrganizer);
+
+					EndRow(fileBuilder);
+				}
+
+				using (StreamWriter writer = new StreamWriter(sfd.FileName))
+				{
+					writer.Write(fileBuilder.ToString());
+				}
+			}
+		}
+
+	    private void ExportSessions()
+	    {
+		    SaveFileDialog sfd = new SaveFileDialog();
+		    sfd.Title = "Greg's stuff";
+		    sfd.DefaultExt = "csv";
+		    sfd.Filter = "Sessions (*.csv)|*.csv";
+		    sfd.RestoreDirectory = true;
+		    sfd.FileName = "Sessions.csv";
+
+		    if (sfd.ShowDialog() == true)
+		    {
+			    var fileBuilder = new StringBuilder();
+
+			    AppendField(fileBuilder, "SpeakerKey");
+			    AppendField(fileBuilder, "SessionKey");
+			    AppendField(fileBuilder, "Selected");
+			    AppendField(fileBuilder, "Room");
+			    AppendField(fileBuilder, "Time");
+			    AppendField(fileBuilder, "SessionLevel");
+			    AppendField(fileBuilder, "SessionTitle");
+			    AppendField(fileBuilder, "SessionDescription");
+			    EndRow(fileBuilder);
+
+
+				foreach (Speaker speaker in _viewModel.Speakers)
+			    {
+				    foreach (Session speakerSession in speaker.Sessions)
+				    {
+					    AppendField(fileBuilder, speaker.SpeakerKey.ToString());
+					    AppendField(fileBuilder, speakerSession.SessionKey.ToString());
+					    AppendField(fileBuilder, speakerSession.IsSelected ? "1" : "0");
+					    if (speakerSession.IsSelected)
+					    {
+						    AppendField(fileBuilder, speakerSession.Selection.Room.RoomName);
+						    AppendField(fileBuilder, speakerSession.Selection.TimeSlot.StartDate.ToShortTimeString());
+						}
+					    AppendField(fileBuilder, speakerSession.Level);
+					    AppendField(fileBuilder, speakerSession.Title);
+					    AppendField(fileBuilder, speakerSession.Description);
+					}
+
+					EndRow(fileBuilder);
+			    }
+
+			    using (StreamWriter writer = new StreamWriter(sfd.FileName))
+			    {
+				    writer.Write(fileBuilder.ToString());
+			    }
+		    }
+	    }
+
+	    private void AppendField(StringBuilder csvContent, string fieldValue)
+	    {
+		    string contentDelimiter = string.Empty;
+		    if (fieldValue.Contains("\""))
+		    {
+			    contentDelimiter = "\"";
+		    }
+
+		    csvContent.AppendFormat("{1}{0}{1},", fieldValue, contentDelimiter);
+	    }
+
+	    private void EndRow(StringBuilder csvContent)
+	    {
+		    if (csvContent[csvContent.Length - 1] == ',')
+		    {
+			    csvContent.Remove(csvContent.Length - 1, 1);
+		    }
+
+		    csvContent.AppendLine();
+	    }
+
+
+	    private void EmailCsv_Click(object sender, RoutedEventArgs e)
         {
             var haveSessions = new List<string>();
             var noSessions = new List<string>();
@@ -449,6 +588,7 @@ namespace SpeakerSelectorOfDeath
 			    }
 		    }
 	    }
+
     }
 
     [Serializable]
@@ -585,7 +725,15 @@ namespace SpeakerSelectorOfDeath
     [Serializable]
     public class Speaker : INotifyPropertyChanged
     {
-        private string _name;
+	    private int _speakerKey;
+
+	    public int SpeakerKey
+	    {
+		    get { return _speakerKey; }
+		    set { _speakerKey = value; }
+	    }
+
+	    private string _name;
         public string Name
         {
             get { return _name; }
@@ -744,6 +892,37 @@ namespace SpeakerSelectorOfDeath
 
 		    return count;
 	    }
+
+	    private Dictionary<string, string> _additionalColumns;
+
+	    public Dictionary<string, string> AdditionalColumns
+	    {
+		    get { return _additionalColumns; }
+		    set { _additionalColumns = value; }
+	    }
+
+	    private static string[] _additionalColumnNames;
+
+	    public static string[] AdditionalColumnNames
+	    {
+		    get { return _additionalColumnNames; }
+		    set { _additionalColumnNames = value; }
+	    }
+
+	    private string _phoneNumber;
+
+	    public string PhoneNumber
+	    {
+		    get { return _phoneNumber; }
+		    set { _phoneNumber = value; }
+	    }
+
+	    private string _twitter;
+	    public string Twitter
+	    {
+		    get { return _twitter; }
+		    set { _twitter = value; }
+	    }
     }
 
     [Serializable]
@@ -752,6 +931,14 @@ namespace SpeakerSelectorOfDeath
 	    public Session()
 	    {
 		    _state = SelectionState.Default;
+	    }
+
+	    private int _sessionKey;
+
+	    public int SessionKey
+	    {
+		    get { return _sessionKey; }
+		    set { _sessionKey = value; }
 	    }
 
 
@@ -889,11 +1076,10 @@ namespace SpeakerSelectorOfDeath
 							if (Math.Abs(compareSession.Selection.TimeSlot.Sequence - speakerSession.Selection.TimeSlot.Sequence) == 1)
 							{
 								speakerSession.State = speakerSession.State.Include(SelectionState.BackToBack);
+								break;
 							}
-							else
-							{
-								speakerSession.State = speakerSession.State.Remove(SelectionState.BackToBack);
-							}
+							
+							speakerSession.State = speakerSession.State.Remove(SelectionState.BackToBack);
 						}
 					}
 			    }
@@ -924,8 +1110,12 @@ namespace SpeakerSelectorOfDeath
 		    }
 	    }
 
+	    public bool IsSelected
+	    {
+		    get { return Selection != null; }
+	    }
 
-		public override string ToString()
+	    public override string ToString()
         {
             return "Session: " + Title;
         }
@@ -941,11 +1131,27 @@ namespace SpeakerSelectorOfDeath
                 this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        #endregion
-        
-    }
+		#endregion
 
-    [Serializable]
+		private Dictionary<string, string> _additionalColumns;
+
+	    public Dictionary<string, string> AdditionalColumns
+	    {
+		    get { return _additionalColumns; }
+		    set { _additionalColumns = value; }
+	    }
+
+	    private static string[] _additionalColumnNames;
+
+	    public static string[] AdditionalColumnNames
+	    {
+		    get { return _additionalColumnNames; }
+		    set { _additionalColumnNames = value; }
+	    }
+
+	}
+
+	[Serializable]
     public class Room : INotifyPropertyChanged
     {
         private string _roomName;
