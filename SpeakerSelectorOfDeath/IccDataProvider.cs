@@ -58,7 +58,7 @@ namespace SpeakerSelectorOfDeath
 						HomeTown = row["City, State"].ToString(),
 						Email = speakerEmail,
 						Website = row["Website or Blog URL"].ToString(),
-						HeadshotUrl = row["URL for a 250x250 pixel JPG headshot image of you"].ToString(),
+						HeadshotUrl = row["400x400 Headshot Image of You"].ToString(),
 						Bio = row["Speaker Bio"].ToString(),
 						NotesToOrganizer = row["Other notes about yourself or your submission"].ToString(),
 						PhoneNumber = row["Phone Number"].ToString(),
