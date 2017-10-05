@@ -127,27 +127,6 @@ namespace SpeakerSelectorOfDeath
 			get { return _sessions; }
 		}
 
-		public bool Verify()
-		{
-			foreach (var session in _sessions)
-			{
-				TimeSlot sessionTime = session.Selection.TimeSlot;
-
-				foreach (var compareSession in _sessions)
-				{
-					if (!session.Equals(compareSession)) { 
-						TimeSlot compareSessionTime = compareSession.Selection.TimeSlot;
-
-						if (sessionTime.StartDate == compareSessionTime.StartDate)
-						{
-							return false;
-						}}
-				}
-			}
-
-			return true;
-		}
-
 		#region INotifyPropertyChanged Members
 
 		[field: NonSerialized]

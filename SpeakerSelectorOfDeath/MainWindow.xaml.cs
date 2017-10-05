@@ -340,6 +340,8 @@ namespace SpeakerSelectorOfDeath
 			}
 
 			_viewModel.AssignKeys();
+
+			_viewModel.InitializeSessionStates();
 		}
 
 		private void ExportButton_Click(object sender, RoutedEventArgs e)
@@ -585,6 +587,8 @@ namespace SpeakerSelectorOfDeath
 				InitializeRoomsAndTimes();
 
 				_viewModel.IsDirty = false;
+
+				_viewModel.InitializeSessionStates();
 
 				DataContext = _viewModel;
 			}

@@ -163,5 +163,34 @@ namespace SpeakerSelectorOfDeath
 				}
 			}
 		}
+
+		public void InitializeSessionStates()
+		{
+			foreach (var speaker in Speakers)
+			{
+				bool speakerHasSelectedSessions = false;
+
+				foreach (var speakerSession in speaker.Sessions)
+				{
+					if (speakerSession.Selection != null)
+					{
+						speakerHasSelectedSessions = true;
+						break;
+					}
+				}
+
+				foreach (var speakerSession in speaker.Sessions)
+				{
+					if (speakerHasSelectedSessions)
+					{
+						speakerSession.State = speakerSession.State.Remove(SelectionState.SpeakerNoSelection);
+					}
+					else
+					{
+						speakerSession.State = speakerSession.State.Include(SelectionState.SpeakerNoSelection);
+					}
+				}
+			}
+		}
 	}
 }

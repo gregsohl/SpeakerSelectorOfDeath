@@ -133,10 +133,14 @@ namespace SpeakerSelectorOfDeath
 
 		private void ValidateSelectedSessions()
 		{
+			bool speakerHasSelections = false;
+
 			foreach (var speakerSession in Speaker.Sessions)
 			{
 				if (speakerSession.Selection != null)
 				{
+					speakerHasSelections = true;
+
 					int count = Speaker.CountSessionsInTime(speakerSession.Selection.TimeSlot);
 
 					if (count > 1)
@@ -166,6 +170,18 @@ namespace SpeakerSelectorOfDeath
 				{
 					speakerSession.State = speakerSession.State.Remove(SelectionState.SameTimeConflict);
 					speakerSession.State = speakerSession.State.Remove(SelectionState.BackToBack);
+				}
+			}
+
+			foreach (var speakerSession in Speaker.Sessions)
+			{
+				if (speakerHasSelections)
+				{
+					speakerSession.State = speakerSession.State.Remove(SelectionState.SpeakerNoSelection);
+				}
+				else
+				{
+					speakerSession.State = speakerSession.State.Include(SelectionState.SpeakerNoSelection);
 				}
 			}
 		}

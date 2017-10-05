@@ -20,6 +20,9 @@ namespace SpeakerSelectorOfDeath
 			if (selectionState.Has(SelectionState.BackToBack))
 				return new SolidColorBrush(Colors.BlueViolet);
 
+			if (selectionState.Has(SelectionState.SpeakerNoSelection))
+				return new SolidColorBrush(Colors.Yellow);
+
 			return new SolidColorBrush(Colors.LightGreen);
 		}
 
