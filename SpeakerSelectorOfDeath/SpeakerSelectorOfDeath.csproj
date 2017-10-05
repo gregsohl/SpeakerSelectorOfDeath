@@ -64,8 +64,19 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="BrushColorConverter.cs" />
     <Compile Include="EnumerationExtensions.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="IccDataProvider.cs" />
+    <Compile Include="Room.cs" />
+    <Compile Include="Selection.cs" />
+    <Compile Include="SelectionState.cs" />
+    <Compile Include="SelectionStateToColorConverter.cs" />
+    <Compile Include="Session.cs" />
+    <Compile Include="SessionTemplateSelector.cs" />
+    <Compile Include="Speaker.cs" />
+    <Compile Include="TimeSlot.cs" />
+    <Compile Include="ViewModel.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
