@@ -48,6 +48,7 @@
             <Button Content="Save" Click="SaveButton_Click" />
             <Button Content="Load" Click="LoadButton_Click" />
             <Button Content="Import" Click="ImportButton_Click" />
+            <Button Content="Import Extra" Click="ImportExtraButton_Click" />
             <Button Content="Export To Greg's Format" Click="ExportButton_Click" />
             <Button Content="Export To Split Format" Click="ExportSplitButton_Click" />
             <Button Content="Emails CSV" Click="EmailCsv_Click" />
