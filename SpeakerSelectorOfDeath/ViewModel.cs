@@ -33,17 +33,45 @@ namespace SpeakerSelectorOfDeath
 
 		private void Highlight()
 		{
-			var searchRegex = new Regex(_search, RegexOptions.IgnoreCase);
-			if (_search == "")
-				searchRegex = new Regex(@"asdofiwoinfoinas;donifosianwoinwef", RegexOptions.IgnoreCase);
-
-			foreach (var speaker in Speakers)
+			if (_search.Length > 1 && _search.StartsWith("="))
 			{
-				var speakerHighlight = searchRegex.IsMatch(speaker.Name);
+				int sessionCount;
 
-				foreach (var session in speaker.Sessions)
+				if (Int32.TryParse(_search.Substring(1), out sessionCount))
 				{
-					session.Highlight = searchRegex.IsMatch(session.Title) || speakerHighlight;
+					foreach (var speaker in Speakers)
+					{
+						int selectedSessionCount = 0;
+
+						foreach (var session in speaker.Sessions)
+						{
+							if (session.IsSelected)
+							{
+								selectedSessionCount++;
+							}
+						}
+						foreach (var session in speaker.Sessions)
+						{
+							session.Highlight = (selectedSessionCount >= sessionCount);
+						}
+					}
+				}
+			}
+			else
+			{
+				var searchRegex = new Regex(_search, RegexOptions.IgnoreCase);
+
+				if (_search == "")
+					searchRegex = new Regex(@"asdofiwoinfoinas;donifosianwoinwef", RegexOptions.IgnoreCase);
+
+				foreach (var speaker in Speakers)
+				{
+					var speakerHighlight = searchRegex.IsMatch(speaker.Name);
+
+					foreach (var session in speaker.Sessions)
+					{
+						session.Highlight = searchRegex.IsMatch(session.Title) || speakerHighlight;
+					}
 				}
 			}
 		}
@@ -137,17 +165,30 @@ namespace SpeakerSelectorOfDeath
 		public void AssignKeys()
 		{
 			bool allSpeakerKeysZero = true;
+			bool allSpeakerKeysSame = true;
+			int firstSpeakerKey = -1;
 
 			foreach (var speaker in _speakers)
 			{
 				if (speaker.SpeakerKey != 0)
 				{
 					allSpeakerKeysZero = false;
-					break;
+				}
+
+				if (firstSpeakerKey == -1)
+				{
+					firstSpeakerKey = speaker.SpeakerKey;
+				}
+				else
+				{
+					if (firstSpeakerKey != speaker.SpeakerKey)
+					{
+						allSpeakerKeysSame = false;
+					}
 				}
 			}
 
-			if (allSpeakerKeysZero)
+			if (allSpeakerKeysZero || allSpeakerKeysSame)
 			{
 				int speakerKey = 1;
 				int sessionKey = 1;

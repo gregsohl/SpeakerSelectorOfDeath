@@ -10,5 +10,6 @@ namespace SpeakerSelectorOfDeath
 		SameTimeConflict = 2,
 		BackToBack = 4,
 		SpeakerNoSelection = 8,
+		SpeakerWithCountSelections = 16,
 	}
 }

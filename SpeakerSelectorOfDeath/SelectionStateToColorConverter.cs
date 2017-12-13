@@ -23,6 +23,9 @@ namespace SpeakerSelectorOfDeath
 			if (selectionState.Has(SelectionState.SpeakerNoSelection))
 				return new SolidColorBrush(Colors.Yellow);
 
+			if (selectionState.Has(SelectionState.SpeakerWithCountSelections))
+				return new SolidColorBrush(Colors.DeepPink);
+
 			return new SolidColorBrush(Colors.LightGreen);
 		}
 

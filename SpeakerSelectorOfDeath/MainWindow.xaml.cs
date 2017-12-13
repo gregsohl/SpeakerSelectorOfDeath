@@ -57,6 +57,7 @@ namespace SpeakerSelectorOfDeath
 		private void InitializeRoomsAndTimes()
 		{
 			//List<string> roomNames = new List<string> { "Auditorium", "116E", "118E", "119E", "121E", "125E", "123E", "126E" };
+			//List<string> roomNames2 = new List<string> { "Room 106", "Room 107", "Room 108", "Room 109", "Room 112", "Room 113", "Room 114", "Room 115" };
 			List<string> roomNames = new List<string> 
 			{ 
 				"Room A (50)",
